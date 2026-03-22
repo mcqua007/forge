@@ -1,0 +1,15 @@
+{
+  "name": "forge",
+  "description": "TDD-driven coding agent with multi-model orchestration. Writes tests first, implements second, and proves everything with evidence. Adversarial multi-model review, verification cascade, and organized commits with user approval.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Sean McQuaid",
+    "url": "https://github.com/mcqua007"
+  },
+  "homepage": "https://github.com/mcqua007/forge",
+  "repository": "https://github.com/mcqua007/forge",
+  "license": "MIT",
+  "keywords": ["tdd", "verification", "code-review", "adversarial", "evidence", "multi-model", "orchestration"],
+  "agents": "agents/",
+  "mcpServers": ".mcp.json"
+}
