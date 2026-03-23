@@ -60,6 +60,59 @@ Announce the strategy:
 > 🧪 Testing strategy: Full TDD — writing failing tests first
 ```
 
+## Verification Ledger
+
+All verification is recorded in SQL. This prevents hallucinated verification.
+
+### Ledger Setup (run at the start of every Medium or Large task)
+
+Generate a `task_id` slug from the task description (e.g., `fix-login-crash`, `add-user-avatar`). Use this same `task_id` consistently for ALL ledger operations in this task.
+
+**Copilot CLI:** Use the built-in `session_store` database.
+
+**Claude Code:** Create a temporary SQLite database:
+```bash
+sqlite3 /tmp/forge-{task_id}.db
+```
+
+Create the ledger table:
+```sql
+CREATE TABLE IF NOT EXISTS forge_checks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id TEXT NOT NULL,
+    phase TEXT NOT NULL CHECK(phase IN ('baseline', 'tdd-red', 'tdd-green', 'refactor', 'after', 'review')),
+    check_name TEXT NOT NULL,
+    tool TEXT NOT NULL,
+    command TEXT,
+    exit_code INTEGER,
+    output_snippet TEXT,
+    passed INTEGER NOT NULL CHECK(passed IN (0, 1)),
+    ts DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Ledger Rules
+
+1. **Every verification step must be an INSERT.** If the INSERT didn't happen, the verification didn't happen.
+2. **The Evidence Bundle is a SELECT, not prose.** Never write verification results from memory — query the ledger.
+3. **INSERT before you report.** Every check must be in `forge_checks` before it appears in the bundle.
+4. **Gate checks are queries.** Before proceeding past a gate, SELECT to confirm required rows exist.
+
+### Ledger Helper
+
+All SQL commands use this pattern:
+
+**Copilot CLI:**
+```sql
+-- database: session_store
+INSERT INTO forge_checks (...) VALUES (...);
+```
+
+**Claude Code:**
+```bash
+sqlite3 /tmp/forge-{task_id}.db "INSERT INTO forge_checks (...) VALUES (...);"
+```
+
 ## The Forge Loop
 
 Steps 0–2 produce **minimal output**. Don't emit conversational text until the evidence bundle presentation. Exceptions: pushback callouts, boosted prompt (if intent changed), and reuse opportunities are shown when they occur.
@@ -89,9 +142,15 @@ Steps 0–2 produce **minimal output**. Don't emit conversational text until the
 
    Offer: "Create `forge/{task_id}` branch" / "Stay on main"
 
-3. **Baseline capture** (Medium/Large only): Run applicable verification cascade checks BEFORE any changes. Record results for later comparison.
+3. **Baseline capture** (Medium/Large only): Run applicable verification cascade checks BEFORE any changes. INSERT each result into the ledger with `phase = 'baseline'`.
    - At minimum: build exit code, test results, IDE diagnostics on target files
    - If baseline is already broken, note it and proceed — you're not responsible for pre-existing failures
+
+   **🚫 GATE: Do NOT proceed to Phase 2 until baseline INSERTs are complete.**
+   ```sql
+   SELECT COUNT(*) FROM forge_checks WHERE task_id = '{task_id}' AND phase = 'baseline';
+   ```
+   **If 0 rows, go back. You skipped baseline.**
 
 ### Phase 2: Plan & Survey
 
@@ -130,9 +189,9 @@ prompt: [same content as above]
 
 After the test-writer returns, **verify tests fail**:
 - Run the test suite (or relevant subset)
-- If tests PASS: investigate — either the feature already exists or tests don't cover new behavior
+- INSERT result with `phase = 'tdd-red'`, `check_name = 'new-tests-fail'`, `passed = 1` if tests failed as expected
+- If tests PASS: investigate — either the feature already exists or tests don't cover new behavior. INSERT with `passed = 0` and note why.
 - If tests FAIL for the right reason: proceed to Green phase
-- Record: test file paths, test names, failure output
 
 ### Phase 4: TDD Green — Implement
 
@@ -157,9 +216,10 @@ prompt: [same content as above]
 
 After the implementer returns, **verify tests pass**:
 - Run the test suite
-- If tests PASS: proceed to Refactor
-- If tests FAIL: re-delegate to implementer with failure output (max 2 retries)
-- After 2 failures: revert changes (`git checkout HEAD -- {files}`), report what went wrong
+- INSERT result with `phase = 'tdd-green'`, `check_name = 'tests-pass'`
+- If tests PASS (`passed = 1`): proceed to Refactor
+- If tests FAIL (`passed = 0`): re-delegate to implementer with failure output (max 2 retries)
+- After 2 failures: revert changes (`git checkout HEAD -- {files}`), INSERT failure, report what went wrong
 
 ### Phase 5: Refactor
 
@@ -177,8 +237,9 @@ Prompt containing:
 
 After refactorer returns, **verify tests still pass**:
 - Run the test suite
-- If tests PASS: proceed
-- If tests FAIL: revert refactoring (`git checkout HEAD -- {refactored files}`), keep the Green implementation, note that refactoring was skipped
+- INSERT result with `phase = 'refactor'`, `check_name = 'tests-still-pass'`
+- If tests PASS (`passed = 1`): proceed
+- If tests FAIL (`passed = 0`): revert refactoring (`git checkout HEAD -- {refactored files}`), keep the Green implementation, INSERT with `output_snippet = 'reverted — refactor broke tests'`
 
 ### Phase 6: Adversarial Review
 
@@ -213,7 +274,15 @@ agent_type: "code-review", model: "claude-opus-4.6"
 agent_type: "code-review", model: "claude-sonnet-4.6"
 ```
 
-If real issues found: fix, re-run verification AND review. Max 2 adversarial rounds. After second round, note remaining findings as known issues with Confidence: Low.
+INSERT each verdict with `phase = 'review'` and `check_name = 'review-{model_name}'` (e.g., `review-opus`, `review-sonnet`).
+
+**🚫 GATE: Do NOT proceed past review until all reviewer verdicts are INSERTed.**
+```sql
+SELECT COUNT(*) FROM forge_checks WHERE task_id = '{task_id}' AND phase = 'review';
+```
+**If 0 for Medium or < 2 for Large, go back.**
+
+If real issues found: fix, re-run verification AND review. Max 2 adversarial rounds. After second round, INSERT remaining findings as known issues with Confidence: Low.
 
 ### Phase 7: Verification Cascade
 
@@ -234,42 +303,65 @@ Detect ecosystem from config files (`package.json`, `Cargo.toml`, `go.mod`, `pyp
 7. Import/load test: verify the module loads without crashing
 8. Smoke execution: write a 3-5 line throwaway script exercising the changed code path, run it, delete the temp file
 
-If Tier 3 is infeasible, note why. Silently skipping is not acceptable.
+If Tier 3 is infeasible, INSERT a check with `check_name = 'tier3-infeasible'`, `passed = 1`, and `output_snippet` explaining why. This is acceptable — silently skipping is not.
 
-**After every check**: if any fails, fix and re-run (max 2 attempts). If unfixable after 2 attempts, revert changes and report.
+**After every check**: INSERT into the ledger with `phase = 'after'`. If any check fails, fix and re-run (max 2 attempts). If unfixable after 2 attempts, revert changes, INSERT the failure, and report.
 
-**Minimum signals:** 2 for Medium, 3 for Large.
+**🚫 GATE: Do NOT proceed to Evidence Bundle until:**
+```sql
+SELECT COUNT(*) FROM forge_checks WHERE task_id = '{task_id}' AND phase = 'after';
+```
+**Returns >= 2 (Medium) or >= 3 (Large). Review-phase rows don't count — this gate requires real verification signals. If insufficient, return to Tier 1.**
 
 ### Phase 8: Evidence Bundle
 
-Assemble from real command outputs collected throughout the loop:
+Generate the bundle from the SQL ledger — not from memory or context.
+
+**Step 1: Query all results:**
+```sql
+SELECT phase, check_name, tool, command, exit_code, passed, output_snippet
+FROM forge_checks WHERE task_id = '{task_id}' ORDER BY phase, id;
+```
+
+**Step 2: Detect regressions:**
+```sql
+SELECT b.check_name
+FROM forge_checks b
+JOIN forge_checks a ON b.check_name = a.check_name AND a.task_id = b.task_id
+WHERE b.task_id = '{task_id}'
+  AND b.phase = 'baseline' AND a.phase = 'after'
+  AND b.passed = 1 AND a.passed = 0;
+```
+
+**Step 3: Present the bundle from query results:**
 
 ```
-## 🔨 Forge Evidence Bundle
+## 🔥 Forge Evidence Bundle
 
-**Task**: {description} | **Size**: S/M/L | **Risk**: 🟢/🟡/🔴
+**Task**: {task_id} | **Size**: S/M/L | **Risk**: 🟢/🟡/🔴
 
 ### Baseline (before changes)
 | Check | Result | Command | Detail |
 |-------|--------|---------|--------|
+{rows where phase = 'baseline'}
 
 ### TDD Cycle
 | Phase | Result | Detail |
 |-------|--------|--------|
-| Red (tests fail) | ✅ Expected | {N} tests failed as expected |
-| Green (tests pass) | ✅ | {N} tests now passing |
-| Refactor | ✅ / ⏭️ Skipped | Tests still green / Not needed |
+{rows where phase IN ('tdd-red', 'tdd-green', 'refactor')}
 
 ### Verification (after changes)
 | Check | Result | Command | Detail |
 |-------|--------|---------|--------|
+{rows where phase = 'after'}
 
 ### Regressions
-{Checks that passed in baseline but fail now. If none: "None detected."}
+{Results from regression query. If none: "None detected."}
 
 ### Adversarial Review
 | Model | Verdict | Findings |
 |-------|---------|----------|
+{rows where phase = 'review'}
 
 **Issues fixed before presenting**: [what reviewers caught]
 **Changes**: [each file and what changed]
@@ -356,11 +448,12 @@ Do this BEFORE guessing at API usage.
 3. Read code before changing it.
 4. When stuck after 2 attempts, explain what failed and ask for help. Don't spin.
 5. Prefer extending existing code over creating new abstractions.
-6. Verification is tool calls, not assertions. Never write "Build passed ✅" without a command that shows the exit code.
+6. Verification is tool calls, not assertions. Never write "Build passed" without a command that shows the exit code.
 7. Baseline before you change. Capture state before edits for Medium and Large tasks.
-8. No empty runtime verification. If Tiers 1-2 yield no runtime signal, run at least one Tier 3 check.
-9. Tests define behavior. In TDD mode, tests are written BEFORE implementation and are not modified during implementation.
-10. User approves commits. Never commit without explicit user approval.
-11. Evidence over assertions. Every claim in the evidence bundle must trace to a real command output.
-12. Subagents get clean context. Pass only what they need — let them read files themselves.
-13. Keep responses focused. Don't narrate the methodology — follow it and show results.
+8. INSERT before you report. Every verification step must be in `forge_checks` before it appears in the evidence bundle.
+9. The Evidence Bundle is a SELECT, not prose. Query the ledger to generate it.
+10. No empty runtime verification. If Tiers 1-2 yield no runtime signal, run at least one Tier 3 check.
+11. Tests define behavior. In TDD mode, tests are written BEFORE implementation and are not modified during implementation.
+12. User approves commits. Never commit without explicit user approval.
+13. Subagents get clean context. Pass only what they need — let them read files themselves.
+14. Keep responses focused. Don't narrate the methodology — follow it and show results.
