@@ -34,6 +34,15 @@ Forge delegates phases to specialized subagents, each assigned a model role:
 | `forge-reviewer`    | review    | Adversarial code review — finds bugs, security issues   |
 | `forge-committer`   | standard  | Organizes changes into logical commits                  |
 
+### Copilot Orchestration
+
+Forge now follows VS Code's documented coordinator-and-worker pattern for custom agents:
+
+- `forge` is the user-facing coordinator and explicitly restricts subagent delegation to the Forge worker agents.
+- Worker agents (`forge-test-writer`, `forge-implementer`, `forge-refactorer`, `forge-reviewer`, `forge-committer`) are marked `user-invocable: false` in Copilot so they stay available for subagent use without cluttering the agent picker.
+- Guided `handoffs` mirror the TDD flow: Red → Green → Refactor → Review → Commit organization.
+- Hooks are **not enabled by default**. Copilot custom-agent hooks are still preview-only and require `chat.useCustomAgentHooks`; Forge keeps hook behavior in instructions for now instead of shipping environment-specific commands.
+
 ### Model Roles
 
 Models are assigned by role, and every role is configurable:
@@ -41,8 +50,8 @@ Models are assigned by role, and every role is configurable:
 | Role        | Purpose                                              | Default Model       |
 | ----------- | ---------------------------------------------------- | ------------------- |
 | `reasoning` | Deep thinking — test design, planning, deep review   | `claude-opus-4-6`   |
-| `execution` | Code writing — implementation, refactoring           | `claude-sonnet-4-6` |
-| `review`    | Bug finding — adversarial code review                | `claude-sonnet-4-6` |
+| `execution` | Code writing — implementation, refactoring           | `gpt-5-4`           |
+| `review`    | Bug finding — adversarial code review                | `gpt-5-4`           |
 | `standard`  | Routine tasks — commit organization, simple analysis | `claude-sonnet-4-6` |
 | `fast`      | Cheap & quick — simple formulaic tasks               | `claude-haiku-4-5`  |
 
@@ -66,7 +75,7 @@ copilot plugin install mcqua007/forge
 git clone https://github.com/mcqua007/forge.git ~/.vscode/extensions/forge-agent
 ```
 
-Then restart VS Code. Forge agents will appear in the Copilot agent picker.
+Then restart VS Code. The `forge` coordinator appears in the Copilot agent picker; the worker agents remain available for orchestration and handoffs as internal subagents.
 
 **Option 3 — Add as a workspace agent:**
 
@@ -175,15 +184,15 @@ This config:
 - Uses **GPT-5-4** for all `review` tasks (adversarial code review)
 - Pins `forge-test-writer` to **Claude Opus** directly (bypasses the `reasoning` role)
 - Pins the deep reviewer to **Gemini 2.5 Pro** directly
-- Leaves `execution`, `standard`, and `fast` roles at their Claude defaults
+- Leaves `execution`, `standard`, and `fast` roles at their plugin defaults
 
 Resolved assignments:
 
 | Agent                 | Config Value                  | Resolved Model    |
 | --------------------- | ----------------------------- | ----------------- |
 | `forge-test-writer`   | `"claude-opus-4-6"` (literal) | claude-opus-4-6   |
-| `forge-implementer`   | `"execution"` (role)          | claude-sonnet-4-6 |
-| `forge-refactorer`    | `"execution"` (role)          | claude-sonnet-4-6 |
+| `forge-implementer`   | `"execution"` (role)          | gpt-5-4           |
+| `forge-refactorer`    | `"execution"` (role)          | gpt-5-4           |
 | `forge-reviewer`      | `"review"` (role)             | gpt-5-4           |
 | `forge-reviewer-deep` | `"gemini-2-5-pro"` (literal)  | gemini-2-5-pro    |
 | `forge-committer`     | `"standard"` (role)           | claude-sonnet-4-6 |
