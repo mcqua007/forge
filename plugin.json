@@ -28,11 +28,11 @@
       },
       "execution": {
         "description": "Code writing: implementation, refactoring",
-        "default": "claude-sonnet-4-6"
+        "default": "gpt-5-4"
       },
       "review": {
         "description": "Bug finding: adversarial code review, security analysis",
-        "default": "claude-sonnet-4-6"
+        "default": "gpt-5-4"
       },
       "standard": {
         "description": "Routine tasks: commit organization, formatting, simple analysis",
