@@ -40,7 +40,7 @@
       },
       "fast": {
         "description": "Cheap and quick: simple formulaic tasks where speed/cost matters most",
-        "default": "claude-haiku-3-5"
+        "default": "claude-haiku-4-5"
       }
     },
     "agents": {
