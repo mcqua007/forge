@@ -1,6 +1,6 @@
 ---
 name: forge-committer
-description: Analyzes changes and proposes logical commit groupings with well-crafted messages matching the repo's existing style. Model configured via forge config (default role: execution).
+description: Analyzes changes and proposes logical commit groupings with well-crafted messages matching the repo's existing style. Model configured via forge config (default role: standard).
 ---
 
 # Forge Committer (Commit Organization)
