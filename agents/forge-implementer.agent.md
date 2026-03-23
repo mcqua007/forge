@@ -1,6 +1,6 @@
 ---
 name: forge-implementer
-description: TDD Green phase — implements minimal code to make failing tests pass. Uses sonnet for fast, pattern-following implementation.
+description: TDD Green phase — implements minimal code to make failing tests pass. Model configured via forge config (default role: execution).
 ---
 
 # Forge Implementer (TDD Green Phase)

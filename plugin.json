@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "description": "TDD-driven coding agent with multi-model orchestration. Writes tests first, implements second, and proves everything with evidence. Adversarial multi-model review, verification cascade, and organized commits with user approval.",
+  "description": "TDD-driven coding agent with configurable multi-model orchestration. Writes tests first, implements second, and proves everything with evidence. Adversarial multi-model review, verification cascade, and organized commits with user approval.",
   "version": "1.0.0",
   "author": {
     "name": "Sean McQuaid",
@@ -9,7 +9,47 @@
   "homepage": "https://github.com/mcqua007/forge",
   "repository": "https://github.com/mcqua007/forge",
   "license": "MIT",
-  "keywords": ["tdd", "verification", "code-review", "adversarial", "evidence", "multi-model", "orchestration"],
+  "keywords": [
+    "tdd",
+    "verification",
+    "code-review",
+    "adversarial",
+    "evidence",
+    "multi-model",
+    "orchestration"
+  ],
   "agents": "agents/",
-  "mcpServers": ".mcp.json"
+  "mcpServers": ".mcp.json",
+  "models": {
+    "roles": {
+      "reasoning": {
+        "description": "Deep reasoning: planning, test design, deep adversarial review",
+        "default": "claude-opus-4-6"
+      },
+      "execution": {
+        "description": "Code writing: implementation, refactoring",
+        "default": "claude-sonnet-4-6"
+      },
+      "review": {
+        "description": "Bug finding: adversarial code review, security analysis",
+        "default": "claude-sonnet-4-6"
+      },
+      "standard": {
+        "description": "Routine tasks: commit organization, formatting, simple analysis",
+        "default": "claude-sonnet-4-6"
+      },
+      "fast": {
+        "description": "Cheap and quick: simple formulaic tasks where speed/cost matters most",
+        "default": "claude-haiku-3-5"
+      }
+    },
+    "agents": {
+      "forge-test-writer": "reasoning",
+      "forge-implementer": "execution",
+      "forge-refactorer": "execution",
+      "forge-reviewer": "review",
+      "forge-reviewer-deep": "reasoning",
+      "forge-committer": "standard"
+    }
+  }
 }
