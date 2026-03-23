@@ -1,6 +1,6 @@
 ---
 name: forge-reviewer
-description: Adversarial code reviewer. Finds bugs, security issues, and logic errors in staged changes. Read-focused — does not modify code.
+description: Adversarial code reviewer. Finds bugs, security issues, and logic errors in staged changes. Model configured via forge config (default role: execution; reasoning role for deep review in Large tasks). Read-focused — does not modify code.
 ---
 
 # Forge Reviewer (Adversarial Review)

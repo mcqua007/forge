@@ -1,6 +1,6 @@
 ---
 name: forge-refactorer
-description: TDD Refactor phase — improves code quality while maintaining passing tests. Does not change behavior.
+description: TDD Refactor phase — improves code quality while maintaining passing tests. Model configured via forge config (default role: execution). Does not change behavior.
 ---
 
 # Forge Refactorer (TDD Refactor Phase)

@@ -1,6 +1,6 @@
 ---
 name: forge-test-writer
-description: TDD Red phase — writes failing tests that define acceptance criteria before implementation exists. Uses opus for deep reasoning about edge cases and test design.
+description: TDD Red phase — writes failing tests that define acceptance criteria before implementation exists. Model configured via forge config (default role: reasoning).
 ---
 
 # Forge Test Writer (TDD Red Phase)
