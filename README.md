@@ -169,6 +169,12 @@ Inspect drift or invalid model/file mappings:
 npm run doctor-models
 ```
 
+Fail in CI if generated worker frontmatter is out of sync with the current model cascade:
+
+```bash
+npm run check-models
+```
+
 Write the resolved VS Code model names into the worker agent files:
 
 ```bash
@@ -194,7 +200,22 @@ Resolve a single runtime worker invocation without relying on generated frontmat
 npm run runtime-agent -- --agent forge-reviewer --prompt "Review the staged changes"
 ```
 
+Launch a host command with resolved Forge placeholders:
+
+```bash
+npm run run-agent -- --agent forge-reviewer-deep --prompt "Deep review the staged changes" -- my-host --agent {agent} --model {modelId} --prompt {prompt}
+```
+
+Available placeholders in `run-agent` command arguments:
+
+- `{agent}`
+- `{modelId}`
+- `{vscodeModel}`
+- `{prompt}`
+
 This implementation updates the worker agents in `agents/` in place. Forge now includes a dedicated `forge-reviewer-deep` agent file, so both VS Code sync and runtime resolution cover the full configured agent set.
+
+At the moment, VS Code custom-agent validation still does not reliably allow `forge-reviewer-deep` inside the coordinator agent's explicit `agents:` allow-list, even though the file itself is valid and the sync/runtime tooling supports it. Deep review is therefore available through sync and runtime resolution now, while coordinator allow-listing remains conservative until VS Code discovers the new custom agent consistently.
 
 ### Override Examples
 

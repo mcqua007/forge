@@ -7,8 +7,16 @@ import {
   validateForgeModels,
 } from './lib/forge-models.mjs';
 
+function parseDoctorArgs(argv) {
+  const parsed = parseCliArgs(argv);
+  return {
+    ...parsed,
+    strict: argv.includes('--strict'),
+  };
+}
+
 try {
-  const { options, overrides } = parseCliArgs(process.argv.slice(2));
+  const { options, overrides, strict } = parseDoctorArgs(process.argv.slice(2));
   const resolution = resolveForgeModels({
     repoRoot: options.repoRoot,
     pluginPath: options.pluginPath,
@@ -38,6 +46,10 @@ try {
 
     for (const warning of report.warnings) {
       console.log(`- ${warning}`);
+    }
+
+    if (strict) {
+      process.exitCode = 1;
     }
   }
 
