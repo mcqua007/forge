@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - sean/update-default-moels
   pull_request:
 
 jobs:

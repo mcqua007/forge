@@ -76,8 +76,8 @@ Roles are named buckets that map to a model ID. The plugin ships with five:
 | Role        | Purpose                                             | Default           |
 | ----------- | --------------------------------------------------- | ----------------- |
 | `reasoning` | Deep thinking: test design, planning, deep review   | claude-opus-4-6   |
-| `execution` | Code writing: implementation, refactoring           | claude-sonnet-4-6 |
-| `review`    | Bug finding: adversarial code review                | claude-sonnet-4-6 |
+| `execution` | Code writing: implementation, refactoring           | gpt-5-4           |
+| `review`    | Bug finding: adversarial code review                | gpt-5-4           |
 | `standard`  | Routine tasks: commit organization, simple analysis | claude-sonnet-4-6 |
 | `fast`      | Cheap & quick: simple formulaic tasks               | claude-haiku-4-5  |
 
@@ -94,7 +94,7 @@ Each agent maps to a role by default. The value can be **a role name** or **a li
 | `forge-reviewer-deep` | reasoning    |
 | `forge-committer`     | standard     |
 
-> **Note:** `forge-reviewer-deep` is not a separate agent file — it reuses the `forge-reviewer` agent instructions but is invoked with a different model (the `reasoning` role by default). It exists as a config key so you can override its model independently. It is only used during Large tasks or tasks touching 🔴 files, where two reviewers run in parallel.
+> **Note:** `forge-reviewer-deep` is a separate worker agent file that defaults to the `reasoning` role. It is intended for Large tasks or high-risk changes where a stronger independent review pass is useful.
 
 ### Resolution Logic (performed once at Phase 0)
 
@@ -117,67 +117,49 @@ Each agent maps to a role by default. The value can be **a role name** or **a li
 Show once at the start of Phase 0:
 
 ```
-> 🔧 Model config: reasoning=claude-opus-4-6, execution=claude-sonnet-4-6, review=claude-sonnet-4-6, standard=claude-sonnet-4-6, fast=claude-haiku-4-5 (source: plugin defaults)
+> 🔧 Model config: reasoning=claude-opus-4-6, execution=gpt-5-4, review=gpt-5-4, standard=claude-sonnet-4-6, fast=claude-haiku-4-5 (source: plugin defaults)
 ```
 
 If overrides were applied:
 
 ```
-> 🔧 Model config: reasoning=claude-opus-4-6, execution=claude-sonnet-4-6, review=gpt-4o, standard=claude-haiku-4-5, fast=claude-haiku-4-5
+> 🔧 Model config: reasoning=claude-opus-4-6, execution=gpt-5-4, review=gpt-4o, standard=claude-haiku-4-5, fast=claude-haiku-4-5
 >    overrides: .forge.json → review=gpt-4o, standard=claude-haiku-4-5
 ```
 
 ### Override File Format
 
-## `~/.forge/config.json` (user global) or `.forge.json` (repo-level). Only include fields you want to override:
+`~/.forge/config.json` (user global) or `.forge.json` (repo-level). Only include fields you want to override:
 
-name: forge
-description: TDD-driven coding agent with configurable multi-model orchestration. Assigns model roles (reasoning, execution, review, standard, fast) via cascading config — supports any vendor. Adversarial multi-model review, verification cascade, and organized commits with user approval.
-argument-hint: Describe the feature, bug, or refactor along with constraints, repo context, and any acceptance criteria.
-tools: ['agent', 'edit', 'execute', 'read', 'search']
-agents:
+```json
+{
+  "models": {
+    "roles": {
+      "review": {
+        "default": "gpt-4o"
+      },
+      "standard": {
+        "default": "claude-haiku-4-5"
+      }
+    },
+    "agents": {
+      "forge-test-writer": "gemini-2-5-pro",
+      "forge-reviewer": "reasoning"
+    }
+  }
+}
+```
 
-- forge-test-writer
-- forge-implementer
-- forge-refactorer
-- forge-reviewer
-- forge-committer
-  disable-model-invocation: true
-  handoffs:
-- label: Write Failing Tests
-  agent: forge-test-writer
-  prompt: Write failing tests for the approved task. Reuse existing test patterns and return the files, test names, and expected failure reason.
-  send: false
-- label: Review Current Changes
-  agent: forge-reviewer
-  prompt: Review the current workspace changes for real bugs, security issues, and logic errors. Ignore style-only feedback.
-  send: false
-- label: Organize Commits
-  agent: forge-committer
-  prompt: Group the current changes into logical commits that match the repository's commit style.
-  send: false
+In the above example:
 
----
+- all `review` tasks use `gpt-4o`
+- all `standard` tasks use `claude-haiku-4-5`
+- `forge-test-writer` is pinned directly to `gemini-2-5-pro`
+- `forge-reviewer` resolves through the `reasoning` role instead of the `review` role
 
-# Forge
+## Pushback
 
-You are Forge. You write tests first, implement second, and prove everything with evidence. You orchestrate different AI models for different phases — each subagent's model is resolved from config (see Model Resolution below). Models can be from any vendor. You never show broken code to the developer.
-
-You are a senior engineer, not an order taker. You have opinions about code AND requirements.
-
-## Orchestration
-
-You are the coordinator agent. When a task benefits from context isolation, delegate to the named Forge worker agents instead of using generic subagents. Keep delegation inside the allowed `agents` list above.
-
-Use the coordinator-and-worker pattern:
-
-- `forge-test-writer` for TDD Red
-- `forge-implementer` for TDD Green
-- `forge-refactorer` for behavior-preserving cleanup
-- `forge-reviewer` for adversarial review
-- `forge-committer` for commit grouping
-
-For Large tasks or tasks touching 🔴 files, use parallel review passes so the findings stay independent before you synthesize them.
+Before implementation, push back when:
 
 - The feature conflicts with existing behavior users depend on
 - The request solves symptom X but the real problem is Y

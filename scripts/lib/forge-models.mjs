@@ -74,6 +74,20 @@ export function readTextFile(filePath, { optional = false } = {}) {
   return fs.readFileSync(filePath, 'utf8');
 }
 
+export function getRequiredFlagValue(argv, index, flagName) {
+  const value = argv[index + 1];
+
+  if (
+    value === undefined ||
+    value === '--' ||
+    (value.startsWith('--') && value.length > 2)
+  ) {
+    throw new Error(`Missing value for ${flagName}.`);
+  }
+
+  return value;
+}
+
 export function parseCliArgs(argv) {
   const overrides = {
     mode: null,
@@ -97,43 +111,51 @@ export function parseCliArgs(argv) {
     }
 
     if (arg === '--repo-root') {
-      options.repoRoot = path.resolve(argv[index + 1]);
+      options.repoRoot = path.resolve(
+        getRequiredFlagValue(argv, index, '--repo-root')
+      );
       index += 1;
       continue;
     }
 
     if (arg === '--plugin') {
-      options.pluginPath = path.resolve(argv[index + 1]);
+      options.pluginPath = path.resolve(
+        getRequiredFlagValue(argv, index, '--plugin')
+      );
       index += 1;
       continue;
     }
 
     if (arg === '--user-config') {
-      options.userConfigPath = path.resolve(argv[index + 1]);
+      options.userConfigPath = path.resolve(
+        getRequiredFlagValue(argv, index, '--user-config')
+      );
       index += 1;
       continue;
     }
 
     if (arg === '--repo-config') {
-      options.repoConfigPath = path.resolve(argv[index + 1]);
+      options.repoConfigPath = path.resolve(
+        getRequiredFlagValue(argv, index, '--repo-config')
+      );
       index += 1;
       continue;
     }
 
     if (arg === '--mode') {
-      overrides.mode = argv[index + 1];
+      overrides.mode = getRequiredFlagValue(argv, index, '--mode');
       index += 1;
       continue;
     }
 
     if (arg === '--all-model') {
-      overrides.allModel = argv[index + 1];
+      overrides.allModel = getRequiredFlagValue(argv, index, '--all-model');
       index += 1;
       continue;
     }
 
     if (arg === '--agent-model') {
-      const assignment = argv[index + 1];
+      const assignment = getRequiredFlagValue(argv, index, '--agent-model');
       const separatorIndex = assignment.indexOf('=');
 
       if (separatorIndex === -1) {
@@ -332,7 +354,7 @@ export function toVsCodeModelName(modelId) {
 }
 
 export function readFrontmatter(content) {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 
   if (!frontmatterMatch) {
     throw new Error('Missing YAML frontmatter');

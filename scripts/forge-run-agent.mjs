@@ -4,7 +4,11 @@ import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 
-import { parseCliArgs, resolveRuntimeInvocation } from './lib/forge-models.mjs';
+import {
+  getRequiredFlagValue,
+  parseCliArgs,
+  resolveRuntimeInvocation,
+} from './lib/forge-models.mjs';
 
 function parseRunArgs(argv) {
   const sentinelIndex = argv.indexOf('--');
@@ -23,13 +27,13 @@ function parseRunArgs(argv) {
     const arg = runtimeArgs[index];
 
     if (arg === '--agent') {
-      runtime.agentName = runtimeArgs[index + 1];
+      runtime.agentName = getRequiredFlagValue(runtimeArgs, index, '--agent');
       index += 1;
       continue;
     }
 
     if (arg === '--prompt') {
-      runtime.prompt = runtimeArgs[index + 1];
+      runtime.prompt = getRequiredFlagValue(runtimeArgs, index, '--prompt');
       index += 1;
       continue;
     }
@@ -40,7 +44,11 @@ function parseRunArgs(argv) {
     }
 
     if (arg === '--host-config') {
-      runtime.hostConfigPath = runtimeArgs[index + 1];
+      runtime.hostConfigPath = getRequiredFlagValue(
+        runtimeArgs,
+        index,
+        '--host-config'
+      );
       index += 1;
     }
   }

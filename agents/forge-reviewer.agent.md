@@ -5,8 +5,8 @@ model: "GPT-5.4 (copilot)"
 user-invocable: false
 tools: ['execute', 'read', 'search']
 handoffs:
-	- { label: Fix Review Findings, agent: forge-implementer, prompt: "Address the concrete review findings with the smallest safe code changes. Do not change tests unless the review proves they are incorrect.", send: false }
-	- { label: Organize Commits, agent: forge-committer, prompt: "Review passed. Group the current changes into logical commits that match the repository's style.", send: false }
+  - { label: Fix Review Findings, agent: forge-implementer, prompt: "Address the concrete review findings with the smallest safe code changes. Do not change tests unless the review proves they are incorrect.", send: false }
+  - { label: Organize Commits, agent: forge-committer, prompt: "Review passed. Group the current changes into logical commits that match the repository's style.", send: false }
 
 ---
 

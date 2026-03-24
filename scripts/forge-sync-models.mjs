@@ -11,12 +11,13 @@ import {
 } from './lib/forge-models.mjs';
 
 function updateFrontmatterModel(content, vscodeModelName) {
-  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  const frontmatterMatch = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
 
   if (!frontmatterMatch) {
     throw new Error('Missing YAML frontmatter');
   }
 
+  const newline = content.includes('\r\n') ? '\r\n' : '\n';
   let frontmatter = frontmatterMatch[1];
   const modelLine = `model: "${vscodeModelName}"`;
 
@@ -25,13 +26,16 @@ function updateFrontmatterModel(content, vscodeModelName) {
   } else if (/^description:.*$/m.test(frontmatter)) {
     frontmatter = frontmatter.replace(
       /^description:.*$/m,
-      (line) => `${line}\n${modelLine}`
+      (line) => `${line}${newline}${modelLine}`
     );
   } else {
-    frontmatter = `${frontmatter}\n${modelLine}`;
+    frontmatter = `${frontmatter}${newline}${modelLine}`;
   }
 
-  return content.replace(/^---\n[\s\S]*?\n---/, `---\n${frontmatter}\n---`);
+  return content.replace(
+    /^---\r?\n[\s\S]*?\r?\n---/,
+    `---${newline}${frontmatter}${newline}---`
+  );
 }
 
 try {

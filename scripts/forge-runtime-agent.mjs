@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
-import { parseCliArgs, resolveRuntimeInvocation } from './lib/forge-models.mjs';
+import {
+  getRequiredFlagValue,
+  parseCliArgs,
+  resolveRuntimeInvocation,
+} from './lib/forge-models.mjs';
 
 function parseRuntimeArgs(argv) {
   const parsed = parseCliArgs(argv);
@@ -14,13 +18,13 @@ function parseRuntimeArgs(argv) {
     const arg = argv[index];
 
     if (arg === '--agent') {
-      runtime.agentName = argv[index + 1];
+      runtime.agentName = getRequiredFlagValue(argv, index, '--agent');
       index += 1;
       continue;
     }
 
     if (arg === '--prompt') {
-      runtime.prompt = argv[index + 1];
+      runtime.prompt = getRequiredFlagValue(argv, index, '--prompt');
       index += 1;
       continue;
     }

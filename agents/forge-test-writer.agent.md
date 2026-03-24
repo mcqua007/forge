@@ -5,7 +5,7 @@ model: "Claude Opus 4.6 (copilot)"
 user-invocable: false
 tools: ['edit', 'read', 'search']
 handoffs:
-	- { label: Start Green Phase, agent: forge-implementer, prompt: "Implement the minimum production code needed to make the newly written failing tests pass. Do not modify the tests.", send: false }
+  - { label: Start Green Phase, agent: forge-implementer, prompt: "Implement the minimum production code needed to make the newly written failing tests pass. Do not modify the tests.", send: false }
 
 ---
 

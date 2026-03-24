@@ -1,12 +1,22 @@
 ---
 name: forge-reviewer-deep
 description: Deep adversarial code reviewer for large or high-risk changes. Uses the reasoning role by default and focuses on correctness, security, and architectural regressions.
-model: "Claude Opus 4.6 (copilot)"
+model: 'Claude Opus 4.6 (copilot)'
 user-invocable: false
 tools: ['execute', 'read', 'search']
 handoffs:
-	- { label: Fix Deep Review Findings, agent: forge-implementer, prompt: "Address the concrete deep-review findings with the smallest safe code changes. Do not change tests unless the review proves they are incorrect.", send: false }
-	- { label: Organize Commits, agent: forge-committer, prompt: "Deep review passed. Group the current changes into logical commits that match the repository's style.", send: false }
+  - {
+      label: Fix Deep Review Findings,
+      agent: forge-implementer,
+      prompt: 'Address the concrete deep-review findings with the smallest safe code changes. Do not change tests unless the review proves they are incorrect.',
+      send: false,
+    }
+  - {
+      label: Organize Commits,
+      agent: forge-committer,
+      prompt: "Deep review passed. Group the current changes into logical commits that match the repository's style.",
+      send: false,
+    }
 ---
 
 # Forge Reviewer Deep (Adversarial Review)
