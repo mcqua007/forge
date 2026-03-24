@@ -6,24 +6,44 @@ A TDD-driven coding agent with configurable multi-model orchestration. Forge wri
 
 Choose the path that matches where you want to use Forge.
 
-| Environment                       | Minimal setup                                                     | What happens next                                                                       |
-| --------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| VS Code Copilot Chat              | Install the Forge Copilot plugin.                                 | Reload VS Code and select `forge` in Copilot Chat.                                      |
-| GitHub Copilot CLI runtime helper | Clone Forge, install deps, and copy the Copilot host template.    | Dry-run the generated command, then adjust `.forge-host.json` for your local CLI flags. |
-| Claude Code CLI                   | Clone Forge and copy `agents/` into your Claude agents directory. | Launch `forge.agent.md` directly or reference it from `CLAUDE.md`.                      |
+| Environment                       | Minimal setup                                                                                    | What happens next                                                                       |
+| --------------------------------- | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| VS Code Copilot Chat              | Copy the Forge agent files into `.github/agents/` in your workspace (or the user agents folder). | Reload VS Code and select `forge` from the agent picker in Copilot Chat.                |
+| GitHub Copilot CLI runtime helper | Clone Forge, install deps, and copy the Copilot host template.                                   | Dry-run the generated command, then adjust `.forge-host.json` for your local CLI flags. |
+| Claude Code CLI                   | Clone Forge and copy `agents/` into your Claude agents directory.                                | Launch `forge.agent.md` directly or reference it from `CLAUDE.md`.                      |
 
 ### Quick Start Commands
 
 #### VS Code Copilot Chat
 
-1. Install the plugin:
+VS Code Copilot Chat discovers custom agents from `.github/agents/` in the open workspace, or from VS Code's user-level agents folder. The `copilot plugin install` command is for the **GitHub Copilot CLI only** — it does not add agents to the VS Code Chat agent picker.
+
+**Workspace-level** (agents available only in one project):
+
+1. In the project where you want Forge, create the agents directory and copy the files:
 
 ```bash
-copilot plugin install mcqua007/forge
+git clone https://github.com/mcqua007/forge.git /tmp/forge
+mkdir -p .github/agents
+cp /tmp/forge/agents/*.agent.md .github/agents/
 ```
 
 2. Reload VS Code.
 3. Open Copilot Chat and select `forge` from the agent picker.
+
+**User-level** (agents available across all projects):
+
+1. Open the VS Code command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and run **"Chat: Open User Agents Folder"**.
+2. Copy the Forge agent files into that folder:
+
+```bash
+git clone https://github.com/mcqua007/forge.git /tmp/forge
+# Paste the path from VS Code in place of <user-agents-folder>
+cp /tmp/forge/agents/*.agent.md <user-agents-folder>/
+```
+
+3. Reload VS Code.
+4. Open Copilot Chat and select `forge` from the agent picker.
 
 #### GitHub Copilot CLI Runtime Helper
 
@@ -134,27 +154,43 @@ Every verification step is recorded in a SQL ledger (`forge_checks` table). The 
 
 Use this path when you want Forge to show up in the Copilot Chat agent picker inside VS Code.
 
+> **Important:** `copilot plugin install mcqua007/forge` installs Forge for the **GitHub Copilot CLI** only. It does not place agents in the location VS Code Copilot Chat reads. For VS Code Chat you need to copy the `.agent.md` files to a path VS Code actually scans.
+
+VS Code Copilot Chat discovers agents from two places:
+
+- **Workspace-level:** `.github/agents/*.agent.md` within the workspace that is open in VS Code
+- **User-level (global):** VS Code's user agents folder (persists across all projects)
+
+#### Workspace-level install
+
 1. Install GitHub Copilot and GitHub Copilot Chat in VS Code.
-2. Install Forge as a Copilot plugin:
+2. In your project, create the agents directory and copy the Forge agent files:
 
 ```bash
-copilot plugin install mcqua007/forge
+mkdir -p .github/agents
+git clone https://github.com/mcqua007/forge.git /tmp/forge
+cp /tmp/forge/agents/*.agent.md .github/agents/
 ```
 
-3. Restart VS Code or reload the window.
+3. Reload VS Code.
 4. Open Copilot Chat and choose `forge` from the agent picker.
 
-If you prefer a local checkout instead of plugin install, clone the repo into your workspace or extensions directory:
+The `forge` coordinator is the user-facing agent. The worker agents (`forge-test-writer`, `forge-implementer`, etc.) are marked `user-invocable: false` so they stay hidden from the picker but remain available for subagent delegation.
+
+#### User-level install (global, works across all projects)
+
+1. Install GitHub Copilot and GitHub Copilot Chat in VS Code.
+2. Open the VS Code command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and run **"Chat: Open User Agents Folder"** to find the correct path.
+3. Copy the Forge agent files into that folder:
 
 ```bash
-# Workspace-local
-git clone https://github.com/mcqua007/forge.git .forge-agent
-
-# Or under your VS Code extensions directory
-git clone https://github.com/mcqua007/forge.git ~/.vscode/extensions/forge-agent
+git clone https://github.com/mcqua007/forge.git /tmp/forge
+# Replace <user-agents-folder> with the path opened in step 2
+cp /tmp/forge/agents/*.agent.md <user-agents-folder>/
 ```
 
-VS Code will detect the `.agent.md` files in `agents/`. The `forge` coordinator is the user-facing agent. The worker agents stay hidden for orchestration because they are marked `user-invocable: false`.
+4. Reload VS Code.
+5. Open Copilot Chat and choose `forge` from the agent picker.
 
 ### GitHub Copilot CLI
 
@@ -180,7 +216,7 @@ This installs Forge as a Copilot plugin, but it does not by itself configure a l
 
 Use this path when you want Forge’s model resolution and worker selection to drive a local Copilot CLI command.
 
-3. Clone this repo somewhere local if you want the runtime helper scripts:
+1. Clone this repo somewhere local if you want the runtime helper scripts:
 
 ```bash
 git clone https://github.com/mcqua007/forge.git
@@ -188,14 +224,14 @@ cd forge
 npm install
 ```
 
-4. Start from the included Copilot host template:
+2. Start from the included Copilot host template:
 
 ```bash
 cp .forge-host.copilot.example.json .forge-host.json
 ```
 
-5. Adjust `.forge-host.json` so the `command` and `args` match the exact Copilot CLI invocation supported by your local version.
-6. Dry-run the resolved invocation:
+3. Adjust `.forge-host.json` so the `command` and `args` match the exact Copilot CLI invocation supported by your local version.
+4. Dry-run the resolved invocation:
 
 ```bash
 npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
@@ -338,7 +374,11 @@ If an entry in `models.agents` matches a role name such as `review` or `executio
 
 ### Preview and Apply Model Changes
 
-After changing models, inspect what Forge now resolves:
+The `.agent.md` files checked into the repo already have `model:` frontmatter values that match the `plugin.json` defaults. A fresh `git clone` + copy gets the correct models with no extra steps.
+
+The `sync-models --write` step is only needed **after you make local config overrides** in `~/.forge/config.json` or `.forge.json`. VS Code Copilot Chat reads the `.agent.md` files directly — it does not read Forge's JSON cascade — so the sync step writes your resolved model names back into the frontmatter to keep VS Code in sync.
+
+After changing your config, inspect what Forge now resolves:
 
 ```bash
 npm run resolve-models
@@ -350,13 +390,11 @@ Check for drift or invalid mappings:
 npm run doctor-models
 ```
 
-If you use Forge inside VS Code Copilot Chat, sync the resolved model names into the worker agent frontmatter:
+Apply your overrides to the agent frontmatter for VS Code:
 
 ```bash
 npm run sync-models -- --write
 ```
-
-VS Code custom agents do not read Forge’s JSON cascade directly. The sync step writes the resolved `model:` value into the worker `.agent.md` files so VS Code uses the same assignments.
 
 Fail CI when config and checked-in worker frontmatter diverge:
 
