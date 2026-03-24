@@ -163,6 +163,12 @@ Preview the resolved assignments:
 npm run resolve-models
 ```
 
+Inspect drift or invalid model/file mappings:
+
+```bash
+npm run doctor-models
+```
+
 Write the resolved VS Code model names into the worker agent files:
 
 ```bash
@@ -182,7 +188,13 @@ Example:
 npm run sync-models -- --write --mode thorough
 ```
 
-This implementation updates the worker agents in `agents/` in place. `forge-reviewer-deep` is still config-only for now and is reported as skipped because it does not yet have its own `.agent.md` file.
+Resolve a single runtime worker invocation without relying on generated frontmatter:
+
+```bash
+npm run runtime-agent -- --agent forge-reviewer --prompt "Review the staged changes"
+```
+
+This implementation updates the worker agents in `agents/` in place. Forge now includes a dedicated `forge-reviewer-deep` agent file, so both VS Code sync and runtime resolution cover the full configured agent set.
 
 ### Override Examples
 

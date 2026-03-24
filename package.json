@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "doctor-models": "node scripts/forge-doctor-models.mjs",
     "resolve-models": "node scripts/forge-resolve-models.mjs",
+    "runtime-agent": "node scripts/forge-runtime-agent.mjs",
     "sync-models": "node scripts/forge-sync-models.mjs"
   }
 }

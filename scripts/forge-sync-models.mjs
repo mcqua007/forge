@@ -4,18 +4,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+  AGENT_FILE_MAP,
   parseCliArgs,
   resolveForgeModels,
   toVsCodeModelName,
 } from './lib/forge-models.mjs';
-
-const AGENT_FILE_MAP = {
-  'forge-test-writer': 'agents/forge-test-writer.agent.md',
-  'forge-implementer': 'agents/forge-implementer.agent.md',
-  'forge-refactorer': 'agents/forge-refactorer.agent.md',
-  'forge-reviewer': 'agents/forge-reviewer.agent.md',
-  'forge-committer': 'agents/forge-committer.agent.md',
-};
 
 function updateFrontmatterModel(content, vscodeModelName) {
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);

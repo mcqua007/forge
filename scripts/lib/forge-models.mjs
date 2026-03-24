@@ -10,6 +10,15 @@ const DEFAULT_USER_CONFIG_FILE = path.join(
   'config.json'
 );
 
+export const AGENT_FILE_MAP = {
+  'forge-test-writer': 'agents/forge-test-writer.agent.md',
+  'forge-implementer': 'agents/forge-implementer.agent.md',
+  'forge-refactorer': 'agents/forge-refactorer.agent.md',
+  'forge-reviewer': 'agents/forge-reviewer.agent.md',
+  'forge-reviewer-deep': 'agents/forge-reviewer-deep.agent.md',
+  'forge-committer': 'agents/forge-committer.agent.md',
+};
+
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -51,6 +60,18 @@ export function readJsonFile(filePath, { optional = false } = {}) {
   } catch (error) {
     throw new Error(`Failed to parse JSON file ${filePath}: ${error.message}`);
   }
+}
+
+export function readTextFile(filePath, { optional = false } = {}) {
+  if (!fs.existsSync(filePath)) {
+    if (optional) {
+      return null;
+    }
+
+    throw new Error(`Missing file: ${filePath}`);
+  }
+
+  return fs.readFileSync(filePath, 'utf8');
 }
 
 export function parseCliArgs(argv) {
@@ -253,20 +274,29 @@ const VSCODE_MODEL_NAME_MAP = {
   'gemini-2-5-flash': 'Gemini 2.5 Flash (copilot)',
 };
 
-export function toVsCodeModelName(modelId) {
+export function toVsCodeModelInfo(modelId) {
   if (VSCODE_MODEL_NAME_MAP[modelId]) {
-    return VSCODE_MODEL_NAME_MAP[modelId];
+    return {
+      vscodeModelName: VSCODE_MODEL_NAME_MAP[modelId],
+      strategy: 'mapped',
+    };
   }
 
   const normalized = modelId.trim();
 
   if (/\(copilot\)$/i.test(normalized)) {
-    return normalized;
+    return {
+      vscodeModelName: normalized,
+      strategy: 'passthrough',
+    };
   }
 
   const gptMatch = normalized.match(/^gpt-(\d+)-(\d+)$/i);
   if (gptMatch) {
-    return `GPT-${gptMatch[1]}.${gptMatch[2]} (copilot)`;
+    return {
+      vscodeModelName: `GPT-${gptMatch[1]}.${gptMatch[2]} (copilot)`,
+      strategy: 'derived',
+    };
   }
 
   const claudeMatch = normalized.match(
@@ -275,17 +305,137 @@ export function toVsCodeModelName(modelId) {
   if (claudeMatch) {
     const family =
       claudeMatch[1][0].toUpperCase() + claudeMatch[1].slice(1).toLowerCase();
-    return `Claude ${family} ${claudeMatch[2]}.${claudeMatch[3]} (copilot)`;
+    return {
+      vscodeModelName: `Claude ${family} ${claudeMatch[2]}.${claudeMatch[3]} (copilot)`,
+      strategy: 'derived',
+    };
   }
 
   const geminiMatch = normalized.match(/^gemini-(\d+)-(\d+)-(pro|flash)$/i);
   if (geminiMatch) {
     const tier =
       geminiMatch[3][0].toUpperCase() + geminiMatch[3].slice(1).toLowerCase();
-    return `Gemini ${geminiMatch[1]}.${geminiMatch[2]} ${tier} (copilot)`;
+    return {
+      vscodeModelName: `Gemini ${geminiMatch[1]}.${geminiMatch[2]} ${tier} (copilot)`,
+      strategy: 'derived',
+    };
   }
 
-  return `${normalized} (copilot)`;
+  return {
+    vscodeModelName: `${normalized} (copilot)`,
+    strategy: 'derived',
+  };
+}
+
+export function toVsCodeModelName(modelId) {
+  return toVsCodeModelInfo(modelId).vscodeModelName;
+}
+
+export function readFrontmatter(content) {
+  const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---/);
+
+  if (!frontmatterMatch) {
+    throw new Error('Missing YAML frontmatter');
+  }
+
+  return frontmatterMatch[1];
+}
+
+export function readFrontmatterModel(content) {
+  const frontmatter = readFrontmatter(content);
+  const modelMatch = frontmatter.match(/^model:\s+['"]?(.+?)['"]?$/m);
+  return modelMatch ? modelMatch[1] : null;
+}
+
+export function resolveRuntimeInvocation({
+  repoRoot = process.cwd(),
+  pluginPath = null,
+  userConfigPath = DEFAULT_USER_CONFIG_FILE,
+  repoConfigPath = null,
+  overrides = { mode: null, allModel: null, agents: {} },
+  agentName,
+  prompt = '',
+} = {}) {
+  const resolution = resolveForgeModels({
+    repoRoot,
+    pluginPath,
+    userConfigPath,
+    repoConfigPath,
+    overrides,
+  });
+
+  const modelId = resolution.resolvedAgents[agentName];
+
+  if (!modelId) {
+    throw new Error(`No resolved model found for agent ${agentName}.`);
+  }
+
+  const modelInfo = toVsCodeModelInfo(modelId);
+
+  return {
+    agentName,
+    prompt,
+    modelId,
+    vscodeModelName: modelInfo.vscodeModelName,
+    vscodeModelStrategy: modelInfo.strategy,
+    resolution,
+  };
+}
+
+export function validateForgeModels({ resolution, repoRoot }) {
+  const errors = [];
+  const warnings = [];
+
+  for (const [agentName, modelId] of Object.entries(
+    resolution.resolvedAgents
+  )) {
+    const modelInfo = toVsCodeModelInfo(modelId);
+    const relativePath = AGENT_FILE_MAP[agentName];
+
+    if (modelInfo.strategy === 'derived') {
+      warnings.push(
+        `${agentName}: VS Code model name for ${modelId} was derived as ${modelInfo.vscodeModelName}. Add an explicit mapping if this is not accepted by Copilot.`
+      );
+    }
+
+    if (!relativePath) {
+      warnings.push(`${agentName}: no mapped agent file for VS Code sync.`);
+      continue;
+    }
+
+    const filePath = path.join(repoRoot, relativePath);
+    if (!fs.existsSync(filePath)) {
+      errors.push(
+        `${agentName}: mapped agent file is missing at ${relativePath}.`
+      );
+      continue;
+    }
+
+    const content = readTextFile(filePath);
+    let currentModel = null;
+
+    try {
+      currentModel = readFrontmatterModel(content);
+    } catch (error) {
+      errors.push(`${agentName}: ${error.message} in ${relativePath}.`);
+      continue;
+    }
+
+    if (!currentModel) {
+      warnings.push(
+        `${agentName}: no model frontmatter found in ${relativePath}. Run sync-models -- --write.`
+      );
+      continue;
+    }
+
+    if (currentModel !== modelInfo.vscodeModelName) {
+      warnings.push(
+        `${agentName}: ${relativePath} has model ${currentModel}, expected ${modelInfo.vscodeModelName}. Run sync-models -- --write.`
+      );
+    }
+  }
+
+  return { errors, warnings };
 }
 
 export function formatResolutionSummary(resolution) {
