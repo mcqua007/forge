@@ -6,11 +6,70 @@ A TDD-driven coding agent with configurable multi-model orchestration. Forge wri
 
 Choose the path that matches where you want to use Forge.
 
-| Environment                       | Minimal setup                                                                                                                                                                                                                             | What happens next                                                                                  |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| VS Code Copilot Chat              | `copilot plugin install mcqua007/forge`                                                                                                                                                                                                   | Reload VS Code, open Copilot Chat, and select `forge` from the agent picker.                       |
-| GitHub Copilot CLI runtime helper | `git clone https://github.com/mcqua007/forge.git && cd forge && npm install && cp .forge-host.copilot.example.json .forge-host.json && npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run` | Edit `.forge-host.json` so it matches the exact Copilot CLI flags supported by your local install. |
-| Claude Code CLI                   | `git clone https://github.com/mcqua007/forge.git && cd forge && mkdir -p ~/.claude/agents/forge && cp -r agents/* ~/.claude/agents/forge/ && claude --agent ~/.claude/agents/forge/forge.agent.md`                                        | Forge loads as a Claude agent bundle and can be referenced again from `CLAUDE.md`.                 |
+| Environment                       | Minimal setup                                                     | What happens next                                                                       |
+| --------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| VS Code Copilot Chat              | Install the Forge Copilot plugin.                                 | Reload VS Code and select `forge` in Copilot Chat.                                      |
+| GitHub Copilot CLI runtime helper | Clone Forge, install deps, and copy the Copilot host template.    | Dry-run the generated command, then adjust `.forge-host.json` for your local CLI flags. |
+| Claude Code CLI                   | Clone Forge and copy `agents/` into your Claude agents directory. | Launch `forge.agent.md` directly or reference it from `CLAUDE.md`.                      |
+
+### Quick Start Commands
+
+#### VS Code Copilot Chat
+
+1. Install the plugin:
+
+```bash
+copilot plugin install mcqua007/forge
+```
+
+2. Reload VS Code.
+3. Open Copilot Chat and select `forge` from the agent picker.
+
+#### GitHub Copilot CLI Runtime Helper
+
+1. Clone Forge and install the helper scripts:
+
+```bash
+git clone https://github.com/mcqua007/forge.git
+cd forge
+npm install
+```
+
+2. Create a local host config from the starter template:
+
+```bash
+cp .forge-host.copilot.example.json .forge-host.json
+```
+
+3. Dry-run a resolved Forge invocation:
+
+```bash
+npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
+```
+
+4. Edit `.forge-host.json` so it matches the exact Copilot CLI command and flags supported by your local install.
+
+#### Claude Code CLI
+
+1. Clone Forge:
+
+```bash
+git clone https://github.com/mcqua007/forge.git
+cd forge
+```
+
+2. Install the Forge agents into Claude’s agent directory:
+
+```bash
+mkdir -p ~/.claude/agents/forge
+cp -r agents/* ~/.claude/agents/forge/
+```
+
+3. Launch Forge:
+
+```bash
+claude --agent ~/.claude/agents/forge/forge.agent.md
+```
 
 ## How It Works
 
