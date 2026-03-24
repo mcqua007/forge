@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
 import { spawn } from 'node:child_process';
+import path from 'node:path';
 
 import { parseCliArgs, resolveRuntimeInvocation } from './lib/forge-models.mjs';
 
@@ -14,6 +16,7 @@ function parseRunArgs(argv) {
     agentName: null,
     prompt: '',
     dryRun: false,
+    hostConfigPath: null,
   };
 
   for (let index = 0; index < runtimeArgs.length; index += 1) {
@@ -33,6 +36,12 @@ function parseRunArgs(argv) {
 
     if (arg === '--dry-run') {
       runtime.dryRun = true;
+      continue;
+    }
+
+    if (arg === '--host-config') {
+      runtime.hostConfigPath = runtimeArgs[index + 1];
+      index += 1;
     }
   }
 
@@ -40,9 +49,9 @@ function parseRunArgs(argv) {
     throw new Error('Missing required --agent argument.');
   }
 
-  if (commandArgs.length === 0) {
+  if (commandArgs.length === 0 && !runtime.hostConfigPath) {
     throw new Error(
-      'Missing host command. Pass it after --, for example: npm run run-agent -- --agent forge-reviewer --prompt "Review" -- my-host --model {modelId} --prompt {prompt}'
+      'Missing host command. Pass it after --, or provide --host-config .forge-host.json.'
     );
   }
 
@@ -50,6 +59,41 @@ function parseRunArgs(argv) {
     ...parsed,
     runtime,
     commandArgs,
+  };
+}
+
+function loadHostConfig(configPath, repoRoot) {
+  const resolvedPath = path.resolve(repoRoot, configPath);
+
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`Missing host config file: ${resolvedPath}`);
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
+  } catch (error) {
+    throw new Error(
+      `Failed to parse host config ${resolvedPath}: ${error.message}`
+    );
+  }
+
+  if (!parsed.command || typeof parsed.command !== 'string') {
+    throw new Error(
+      `Host config ${resolvedPath} must define a string command.`
+    );
+  }
+
+  if (parsed.args && !Array.isArray(parsed.args)) {
+    throw new Error(
+      `Host config ${resolvedPath} must define args as an array if present.`
+    );
+  }
+
+  return {
+    command: parsed.command,
+    args: parsed.args ?? [],
+    path: resolvedPath,
   };
 }
 
@@ -82,7 +126,14 @@ try {
     prompt: invocation.prompt,
   };
 
-  const resolvedCommand = commandArgs.map((token) =>
+  const hostCommand = runtime.hostConfigPath
+    ? (() => {
+        const config = loadHostConfig(runtime.hostConfigPath, options.repoRoot);
+        return [config.command, ...config.args];
+      })()
+    : commandArgs;
+
+  const resolvedCommand = hostCommand.map((token) =>
     substituteToken(token, payload)
   );
 
@@ -92,6 +143,9 @@ try {
     console.log(`- agent: ${payload.agent}`);
     console.log(`- modelId: ${payload.modelId}`);
     console.log(`- vscodeModel: ${payload.vscodeModel}`);
+    if (runtime.hostConfigPath) {
+      console.log(`- hostConfig: ${runtime.hostConfigPath}`);
+    }
     console.log(`- command: ${resolvedCommand.join(' ')}`);
     process.exit(0);
   }

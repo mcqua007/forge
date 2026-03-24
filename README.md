@@ -175,6 +175,8 @@ Fail in CI if generated worker frontmatter is out of sync with the current model
 npm run check-models
 ```
 
+The repository also ships a GitHub Actions workflow at `.github/workflows/check-models.yml` that runs this check on pushes and pull requests.
+
 Write the resolved VS Code model names into the worker agent files:
 
 ```bash
@@ -205,6 +207,14 @@ Launch a host command with resolved Forge placeholders:
 ```bash
 npm run run-agent -- --agent forge-reviewer-deep --prompt "Deep review the staged changes" -- my-host --agent {agent} --model {modelId} --prompt {prompt}
 ```
+
+Or define a reusable host template in `.forge-host.json` and use:
+
+```bash
+npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
+```
+
+An example template is included in `.forge-host.example.json`.
 
 Available placeholders in `run-agent` command arguments:
 
