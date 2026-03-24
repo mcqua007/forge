@@ -6,35 +6,11 @@ A TDD-driven coding agent with configurable multi-model orchestration. Forge wri
 
 Choose the path that matches where you want to use Forge.
 
-### VS Code Copilot Chat
-
-```bash
-copilot plugin install mcqua007/forge
-```
-
-Then reload VS Code, open Copilot Chat, and select `forge` from the agent picker.
-
-### GitHub Copilot CLI Runtime Helper
-
-```bash
-git clone https://github.com/mcqua007/forge.git
-cd forge
-npm install
-cp .forge-host.copilot.example.json .forge-host.json
-npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
-```
-
-Then edit `.forge-host.json` to match the exact Copilot CLI command syntax supported by your local installation.
-
-### Claude Code CLI
-
-```bash
-git clone https://github.com/mcqua007/forge.git
-cd forge
-mkdir -p ~/.claude/agents/forge
-cp -r agents/* ~/.claude/agents/forge/
-claude --agent ~/.claude/agents/forge/forge.agent.md
-```
+| Environment                       | Minimal setup                                                                                                                                                                                                                             | What happens next                                                                                  |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| VS Code Copilot Chat              | `copilot plugin install mcqua007/forge`                                                                                                                                                                                                   | Reload VS Code, open Copilot Chat, and select `forge` from the agent picker.                       |
+| GitHub Copilot CLI runtime helper | `git clone https://github.com/mcqua007/forge.git && cd forge && npm install && cp .forge-host.copilot.example.json .forge-host.json && npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run` | Edit `.forge-host.json` so it matches the exact Copilot CLI flags supported by your local install. |
+| Claude Code CLI                   | `git clone https://github.com/mcqua007/forge.git && cd forge && mkdir -p ~/.claude/agents/forge && cp -r agents/* ~/.claude/agents/forge/ && claude --agent ~/.claude/agents/forge/forge.agent.md`                                        | Forge loads as a Claude agent bundle and can be referenced again from `CLAUDE.md`.                 |
 
 ## How It Works
 
