@@ -216,6 +216,41 @@ npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged c
 
 An example template is included in `.forge-host.example.json`.
 
+Two host-specific starter templates are also included:
+
+- `.forge-host.claude.example.json`
+- `.forge-host.copilot.example.json`
+
+Dry-run them like this:
+
+```bash
+npm run run-agent:claude -- --agent forge-reviewer-deep --prompt "Deep review the staged changes" --dry-run
+```
+
+```bash
+npm run run-agent:copilot -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
+```
+
+### What "Exact Command Shape" Means
+
+The model resolver can determine **which model** a worker should use, but Forge still needs to know the **exact executable and argument format** for the host you want to launch.
+
+That means the real command shape for your machine, for example:
+
+- which binary exists: `claude`, `copilot`, or another wrapper
+- whether the tool accepts a raw prompt positional argument or requires a flag such as `--prompt`
+- whether it supports model selection directly and, if so, which flag it expects
+- whether the tool uses `chat`, `run`, or some other subcommand before the prompt
+
+Examples of command shape differences:
+
+- `claude --print "{prompt}"`
+- `claude chat --model "{modelId}" --prompt "{prompt}"`
+- `copilot chat --prompt "{prompt}"`
+- `copilot run --model "{modelId}" --prompt "{prompt}"`
+
+The checked-in Claude and Copilot host files are intentionally **starter templates**, not a guarantee that those exact flags match your installed CLI version. Use `--dry-run` first, then adjust the template file to the real command shape supported by your local CLI.
+
 Available placeholders in `run-agent` command arguments:
 
 - `{agent}`

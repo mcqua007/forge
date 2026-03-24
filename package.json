@@ -8,6 +8,8 @@
     "resolve-models": "node scripts/forge-resolve-models.mjs",
     "runtime-agent": "node scripts/forge-runtime-agent.mjs",
     "run-agent": "node scripts/forge-run-agent.mjs",
+    "run-agent:claude": "node scripts/forge-run-agent.mjs --host-config .forge-host.claude.example.json",
+    "run-agent:copilot": "node scripts/forge-run-agent.mjs --host-config .forge-host.copilot.example.json",
     "run-agent:config": "node scripts/forge-run-agent.mjs --host-config .forge-host.json",
     "sync-models": "node scripts/forge-sync-models.mjs"
   }
