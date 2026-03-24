@@ -2,6 +2,40 @@
 
 A TDD-driven coding agent with configurable multi-model orchestration. Forge writes tests first, implements second, and proves everything with evidence. It uses adversarial multi-model review, a verification cascade, and organized commits — all with user approval before anything lands.
 
+## Quick Start
+
+Choose the path that matches where you want to use Forge.
+
+### VS Code Copilot Chat
+
+```bash
+copilot plugin install mcqua007/forge
+```
+
+Then reload VS Code, open Copilot Chat, and select `forge` from the agent picker.
+
+### GitHub Copilot CLI Runtime Helper
+
+```bash
+git clone https://github.com/mcqua007/forge.git
+cd forge
+npm install
+cp .forge-host.copilot.example.json .forge-host.json
+npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
+```
+
+Then edit `.forge-host.json` to match the exact Copilot CLI command syntax supported by your local installation.
+
+### Claude Code CLI
+
+```bash
+git clone https://github.com/mcqua007/forge.git
+cd forge
+mkdir -p ~/.claude/agents/forge
+cp -r agents/* ~/.claude/agents/forge/
+claude --agent ~/.claude/agents/forge/forge.agent.md
+```
+
 ## How It Works
 
 Forge follows a strict loop for every non-trivial task:
@@ -61,61 +95,128 @@ Every verification step is recorded in a SQL ledger (`forge_checks` table). The 
 
 ## Installation
 
-### GitHub Copilot (VS Code / CLI)
+### VS Code Copilot Chat
 
-**Option 1 — Install the plugin (recommended):**
+Use this path when you want Forge to show up in the Copilot Chat agent picker inside VS Code.
+
+1. Install GitHub Copilot and GitHub Copilot Chat in VS Code.
+2. Install Forge as a Copilot plugin:
 
 ```bash
 copilot plugin install mcqua007/forge
 ```
 
-**Option 2 — Clone into your extensions directory:**
+3. Restart VS Code or reload the window.
+4. Open Copilot Chat and choose `forge` from the agent picker.
+
+If you prefer a local checkout instead of plugin install, clone the repo into your workspace or extensions directory:
 
 ```bash
+# Workspace-local
+git clone https://github.com/mcqua007/forge.git .forge-agent
+
+# Or under your VS Code extensions directory
 git clone https://github.com/mcqua007/forge.git ~/.vscode/extensions/forge-agent
 ```
 
-Then restart VS Code. The `forge` coordinator appears in the Copilot agent picker; the worker agents remain available for orchestration and handoffs as internal subagents.
+VS Code will detect the `.agent.md` files in `agents/`. The `forge` coordinator is the user-facing agent. The worker agents stay hidden for orchestration because they are marked `user-invocable: false`.
 
-**Option 3 — Add as a workspace agent:**
+### GitHub Copilot CLI
 
-Clone or copy the repo into your project:
+There are two different Copilot CLI use cases:
+
+1. Native plugin installation, so Forge is installed in the Copilot ecosystem.
+2. Optional runtime-helper execution, where Forge resolves a worker and model and then expands a local Copilot CLI command template.
+
+#### Native Plugin Install
+
+Use this if your goal is simply to install Forge as a Copilot plugin:
+
+1. Install the Copilot CLI on your machine.
+2. Install Forge as a Copilot plugin:
 
 ```bash
-# From your project root
-git clone https://github.com/mcqua007/forge.git .forge-agent
+copilot plugin install mcqua007/forge
 ```
 
-Or add it as a git submodule:
+This installs Forge as a Copilot plugin, but it does not by itself configure a local host-command template for model-aware CLI execution.
+
+#### Optional Runtime-Helper Flow
+
+Use this path when you want Forge’s model resolution and worker selection to drive a local Copilot CLI command.
+
+3. Clone this repo somewhere local if you want the runtime helper scripts:
 
 ```bash
-git submodule add https://github.com/mcqua007/forge.git .forge-agent
+git clone https://github.com/mcqua007/forge.git
+cd forge
+npm install
 ```
 
-VS Code will detect the `.agent.md` files and make them available in Copilot Chat.
+4. Start from the included Copilot host template:
+
+```bash
+cp .forge-host.copilot.example.json .forge-host.json
+```
+
+5. Adjust `.forge-host.json` so the `command` and `args` match the exact Copilot CLI invocation supported by your local version.
+6. Dry-run the resolved invocation:
+
+```bash
+npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
+```
+
+If you want to use the checked-in starter directly, you can also run:
+
+```bash
+npm run run-agent:copilot -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
+```
+
+Forge will resolve the configured worker model first, then substitute `{agent}`, `{modelId}`, `{vscodeModel}`, and `{prompt}` into the Copilot CLI command template.
+
+This runtime-helper flow is optional. It is for users who want Forge’s config cascade to drive a concrete local CLI invocation instead of only installing the plugin.
 
 ### Claude Code CLI
 
-Copy the `agents/` folder into your project or into `~/.claude/agents/` for global access:
+Use this path when you want Forge loaded as a Claude agent bundle.
+
+1. Install Claude Code CLI.
+2. Clone this repo:
 
 ```bash
-# Per-project
-git clone https://github.com/mcqua007/forge.git .forge-agent
-cp -r .forge-agent/agents/ .claude/agents/forge/
-
-# Global (available in all projects)
-mkdir -p ~/.claude/agents
-git clone https://github.com/mcqua007/forge.git /tmp/forge
-cp -r /tmp/forge/agents/ ~/.claude/agents/forge/
+git clone https://github.com/mcqua007/forge.git
+cd forge
 ```
 
-Then invoke directly:
+3. Choose either project-local or global agent installation.
+
+Project-local:
+
+```bash
+mkdir -p .claude/agents/forge
+cp -r agents/* .claude/agents/forge/
+```
+
+Global:
+
+```bash
+mkdir -p ~/.claude/agents/forge
+cp -r agents/* ~/.claude/agents/forge/
+```
+
+4. Run Forge directly:
 
 ```bash
 claude --agent .claude/agents/forge/forge.agent.md
 ```
 
-Or add to your `CLAUDE.md` to always load Forge:
+Or, if you installed globally:
+
+```bash
+claude --agent ~/.claude/agents/forge/forge.agent.md
+```
+
+You can also reference the agent from `CLAUDE.md` so it is easy to reuse across tasks:
 
 ```markdown
 ## Agents
@@ -123,144 +224,147 @@ Or add to your `CLAUDE.md` to always load Forge:
 Use the forge agent defined in .claude/agents/forge/forge.agent.md
 ```
 
-## Configuration
+If you want Forge’s runtime helper to launch Claude Code with resolved worker/model values, start from the included template:
+
+```bash
+cp .forge-host.claude.example.json .forge-host.json
+npm install
+npm run run-agent:config -- --agent forge-reviewer-deep --prompt "Deep review the staged changes" --dry-run
+```
+
+## Model Configuration
 
 Forge uses a cascading config system. Later sources override earlier ones:
 
-1. **Plugin defaults** — `plugin.json` in the Forge repo (ships with sensible defaults)
-2. **User config** — `~/.forge/config.json` (applies to all your projects)
-3. **Repo config** — `.forge.json` in your project root (checked into version control)
-4. **Runtime overrides** — say "cheap mode", "thorough mode", or "use gpt-5-4 for everything" in your prompt
+1. `plugin.json` in the Forge repo
+2. `~/.forge/config.json` for user-wide overrides
+3. `.forge.json` in the target repository for repo-specific overrides
+4. Runtime overrides such as "cheap mode" or `--agent-model`
 
-### How Resolution Works
+### Default Role Mapping
 
-When Forge starts a task, it resolves each subagent's model in order:
+These are the current default role assignments from `plugin.json`:
 
+| Agent                 | Role        | Default Model       |
+| --------------------- | ----------- | ------------------- |
+| `forge-test-writer`   | `reasoning` | `claude-opus-4-6`   |
+| `forge-implementer`   | `execution` | `gpt-5-4`           |
+| `forge-refactorer`    | `execution` | `gpt-5-4`           |
+| `forge-reviewer`      | `review`    | `gpt-5-4`           |
+| `forge-reviewer-deep` | `reasoning` | `claude-opus-4-6`   |
+| `forge-committer`     | `standard`  | `claude-sonnet-4-6` |
+
+Use role overrides when you want to change a whole class of work, such as all reviewers or all execution agents. Use agent overrides when you want to pin one specific worker.
+
+### Change a Role Model
+
+To change the model used for a role such as reviewers, test writers, or implementers, create either `~/.forge/config.json` or `.forge.json` and override `models.roles`.
+
+Example: change all `review` work to Claude Opus and all `execution` work to Claude Sonnet:
+
+```json
+{
+  "models": {
+    "roles": {
+      "review": {
+        "default": "claude-opus-4-6"
+      },
+      "execution": {
+        "default": "claude-sonnet-4-6"
+      }
+    }
+  }
+}
 ```
-plugin.json (defaults)
-  ↓ deep-merge
-~/.forge/config.json (user overrides)
-  ↓ deep-merge
-.forge.json (repo overrides)
-  ↓
-runtime prompt ("cheap mode", "use gpt-5-4 for everything", etc.)
-  ↓
-final model assignments
+
+That changes:
+
+- `forge-reviewer` because it points at the `review` role
+- `forge-implementer` and `forge-refactorer` because they point at the `execution` role
+
+### Change One Specific Agent
+
+To pin only one worker without changing the whole role, override `models.agents`.
+
+Example: keep the normal reviewer on the `review` role, but pin the test writer and deep reviewer to specific literal models:
+
+```json
+{
+  "models": {
+    "agents": {
+      "forge-test-writer": "claude-opus-4-6",
+      "forge-reviewer-deep": "gemini-2-5-pro"
+    }
+  }
+}
 ```
 
-For each agent, the value in `models.agents` is checked:
+If an entry in `models.agents` matches a role name such as `review` or `execution`, Forge resolves that role through `models.roles`. If it does not match a role name, Forge treats it as a literal model ID.
 
-- If it matches a **role name** (e.g. `"reasoning"`) → resolved through `models.roles` to get the model ID
-- Otherwise → treated as a **literal model ID** from any vendor (`gpt-5-4`, `gemini-2-5-pro`, etc.)
+### Preview and Apply Model Changes
 
-### Syncing VS Code Agent Models
-
-VS Code custom agents do **not** read Forge's JSON model cascade automatically. Forge now includes a small sync tool that resolves the cascade and writes explicit `model:` frontmatter into the worker agent files used by VS Code.
-
-Preview the resolved assignments:
+After changing models, inspect what Forge now resolves:
 
 ```bash
 npm run resolve-models
 ```
 
-Inspect drift or invalid model/file mappings:
+Check for drift or invalid mappings:
 
 ```bash
 npm run doctor-models
 ```
 
-Fail in CI if generated worker frontmatter is out of sync with the current model cascade:
-
-```bash
-npm run check-models
-```
-
-The repository also ships a GitHub Actions workflow at `.github/workflows/check-models.yml` that runs this check on pushes and pull requests.
-
-Write the resolved VS Code model names into the worker agent files:
+If you use Forge inside VS Code Copilot Chat, sync the resolved model names into the worker agent frontmatter:
 
 ```bash
 npm run sync-models -- --write
 ```
 
-The sync tool resolves in this order:
+VS Code custom agents do not read Forge’s JSON cascade directly. The sync step writes the resolved `model:` value into the worker `.agent.md` files so VS Code uses the same assignments.
 
-1. `plugin.json`
-2. `~/.forge/config.json`
-3. `.forge.json`
-4. CLI runtime overrides such as `--mode cheap`, `--mode thorough`, `--all-model gpt-5-4`, or `--agent-model forge-reviewer=claude-opus-4-6`
+Fail CI when config and checked-in worker frontmatter diverge:
 
-Example:
+```bash
+npm run check-models
+```
+
+### Runtime Overrides
+
+You can also override models for a single run without editing config files.
+
+Examples:
 
 ```bash
 npm run sync-models -- --write --mode thorough
+npm run sync-models -- --write --all-model gpt-5-4
+npm run sync-models -- --write --agent-model forge-reviewer=claude-opus-4-6
 ```
 
-Resolve a single runtime worker invocation without relying on generated frontmatter:
+Or in a prompt:
 
-```bash
-npm run runtime-agent -- --agent forge-reviewer --prompt "Review the staged changes"
-```
+- "cheap mode" or "fast mode" makes all roles resolve to the `fast` model
+- "thorough mode" makes all roles resolve to the `reasoning` model
+- "use gpt-5-4 for everything" makes all agents resolve to that literal model ID
 
-Launch a host command with resolved Forge placeholders:
+### Host Templates and Command Shape
 
-```bash
-npm run run-agent -- --agent forge-reviewer-deep --prompt "Deep review the staged changes" -- my-host --agent {agent} --model {modelId} --prompt {prompt}
-```
+Forge can resolve which model a worker should use, but it still needs to know how your local CLI should be invoked.
 
-Or define a reusable host template in `.forge-host.json` and use:
+That command shape includes:
 
-```bash
-npm run run-agent:config -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
-```
+- which binary to run, such as `claude` or `copilot`
+- whether the CLI expects `chat`, `run`, or another subcommand
+- whether the prompt is positional or passed with `--prompt`
+- whether model selection is supported directly and, if so, which flag it expects
 
-An example template is included in `.forge-host.example.json`.
+Starter templates are included in:
 
-Two host-specific starter templates are also included:
-
+- `.forge-host.example.json`
 - `.forge-host.claude.example.json`
 - `.forge-host.copilot.example.json`
 
-Dry-run them like this:
-
-```bash
-npm run run-agent:claude -- --agent forge-reviewer-deep --prompt "Deep review the staged changes" --dry-run
-```
-
-```bash
-npm run run-agent:copilot -- --agent forge-reviewer --prompt "Review the staged changes" --dry-run
-```
-
-### What "Exact Command Shape" Means
-
-The model resolver can determine **which model** a worker should use, but Forge still needs to know the **exact executable and argument format** for the host you want to launch.
-
-That means the real command shape for your machine, for example:
-
-- which binary exists: `claude`, `copilot`, or another wrapper
-- whether the tool accepts a raw prompt positional argument or requires a flag such as `--prompt`
-- whether it supports model selection directly and, if so, which flag it expects
-- whether the tool uses `chat`, `run`, or some other subcommand before the prompt
-
-Examples of command shape differences:
-
-- `claude --print "{prompt}"`
-- `claude chat --model "{modelId}" --prompt "{prompt}"`
-- `copilot chat --prompt "{prompt}"`
-- `copilot run --model "{modelId}" --prompt "{prompt}"`
-
-The checked-in Claude and Copilot host files are intentionally **starter templates**, not a guarantee that those exact flags match your installed CLI version. Use `--dry-run` first, then adjust the template file to the real command shape supported by your local CLI.
-
-Available placeholders in `run-agent` command arguments:
-
-- `{agent}`
-- `{modelId}`
-- `{vscodeModel}`
-- `{prompt}`
-
-This implementation updates the worker agents in `agents/` in place. Forge now includes a dedicated `forge-reviewer-deep` agent file, so both VS Code sync and runtime resolution cover the full configured agent set.
-
-At the moment, VS Code custom-agent validation still does not reliably allow `forge-reviewer-deep` inside the coordinator agent's explicit `agents:` allow-list, even though the file itself is valid and the sync/runtime tooling supports it. Deep review is therefore available through sync and runtime resolution now, while coordinator allow-listing remains conservative until VS Code discovers the new custom agent consistently.
+Use `--dry-run` first, then edit the template to match your installed CLI version.
 
 ### Override Examples
 
@@ -306,7 +410,7 @@ Resolved assignments:
 | `forge-reviewer-deep` | `"gemini-2-5-pro"` (literal)  | gemini-2-5-pro    |
 | `forge-committer`     | `"standard"` (role)           | claude-sonnet-4-6 |
 
-> **Note:** `forge-reviewer-deep` is not a separate agent file — it reuses the `forge-reviewer` agent but is invoked with a stronger model. It only runs during Large tasks or tasks touching high-risk (🔴) files, where two reviewers run in parallel. It exists as a config key so its model can be overridden independently.
+> **Note:** `forge-reviewer-deep` is a separate worker agent file and defaults to the `reasoning` role. Use it when you want a stronger deep-review pass than the standard reviewer.
 
 **Example 2 — Budget-friendly for a side project:**
 
