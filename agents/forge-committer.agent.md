@@ -1,11 +1,16 @@
 ---
 name: forge-committer
-description: Analyzes changes and proposes logical commit groupings with well-crafted messages matching the repo's existing style. Model configured via forge config (default role: standard).
-model: "Claude Sonnet 4.6 (copilot)"
+description: "Analyzes changes and proposes logical commit groupings with well-crafted messages matching the repo's existing style. Model configured via forge config (default role: standard)."
+model: 'Claude Sonnet 4.6 (copilot)'
 user-invocable: false
 tools: ['execute', 'read', 'search']
 handoffs:
-  - { label: Return To Forge, agent: forge, prompt: "Present the evidence bundle and proposed commit plan, then wait for explicit user approval before creating commits.", send: false }
+  - {
+      label: Return To Forge,
+      agent: forge,
+      prompt: 'Present the evidence bundle and proposed commit plan, then wait for explicit user approval before creating commits.',
+      send: false,
+    }
 ---
 
 # Forge Committer (Commit Organization)

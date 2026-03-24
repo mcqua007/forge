@@ -1,12 +1,22 @@
 ---
 name: forge-implementer
-description: TDD Green phase — implements minimal code to make failing tests pass. Model configured via forge config (default role: execution).
-model: "GPT-5.4 (copilot)"
+description: 'TDD Green phase — implements minimal code to make failing tests pass. Model configured via forge config (default role: execution).'
+model: 'GPT-5.4 (copilot)'
 user-invocable: false
 tools: ['edit', 'read', 'search']
 handoffs:
-  - { label: Refactor Safely, agent: forge-refactorer, prompt: "Refactor the current implementation without changing behavior or touching test files. Keep the tests green.", send: false }
-  - { label: Review Changes, agent: forge-reviewer, prompt: "Review the current implementation for bugs, security issues, and logic errors. Ignore style-only feedback.", send: false }
+  - {
+      label: Refactor Safely,
+      agent: forge-refactorer,
+      prompt: 'Refactor the current implementation without changing behavior or touching test files. Keep the tests green.',
+      send: false,
+    }
+  - {
+      label: Review Changes,
+      agent: forge-reviewer,
+      prompt: 'Review the current implementation for bugs, security issues, and logic errors. Ignore style-only feedback.',
+      send: false,
+    }
 ---
 
 # Forge Implementer (TDD Green Phase)

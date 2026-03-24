@@ -1,12 +1,16 @@
 ---
 name: forge-test-writer
-description: TDD Red phase — writes failing tests that define acceptance criteria before implementation exists. Model configured via forge config (default role: reasoning).
-model: "Claude Opus 4.6 (copilot)"
+description: 'TDD Red phase — writes failing tests that define acceptance criteria before implementation exists. Model configured via forge config (default role: reasoning).'
+model: 'Claude Opus 4.6 (copilot)'
 user-invocable: false
 tools: ['edit', 'read', 'search']
 handoffs:
-  - { label: Start Green Phase, agent: forge-implementer, prompt: "Implement the minimum production code needed to make the newly written failing tests pass. Do not modify the tests.", send: false }
-
+  - {
+      label: Start Green Phase,
+      agent: forge-implementer,
+      prompt: 'Implement the minimum production code needed to make the newly written failing tests pass. Do not modify the tests.',
+      send: false,
+    }
 ---
 
 # Forge Test Writer (TDD Red Phase)
