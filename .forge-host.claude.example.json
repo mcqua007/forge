@@ -1,0 +1,4 @@
+{
+  "command": "claude",
+  "args": ["--print", "{prompt}"]
+}
