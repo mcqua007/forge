@@ -1,6 +1,7 @@
 ---
 name: forge-implementer
 description: TDD Green phase — implements minimal code to make failing tests pass. Model configured via forge config (default role: execution).
+model: "GPT-5.4 (copilot)"
 user-invocable: false
 tools: ['edit', 'read', 'search']
 handoffs:

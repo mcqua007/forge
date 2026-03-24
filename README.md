@@ -153,6 +153,37 @@ For each agent, the value in `models.agents` is checked:
 - If it matches a **role name** (e.g. `"reasoning"`) → resolved through `models.roles` to get the model ID
 - Otherwise → treated as a **literal model ID** from any vendor (`gpt-5-4`, `gemini-2-5-pro`, etc.)
 
+### Syncing VS Code Agent Models
+
+VS Code custom agents do **not** read Forge's JSON model cascade automatically. Forge now includes a small sync tool that resolves the cascade and writes explicit `model:` frontmatter into the worker agent files used by VS Code.
+
+Preview the resolved assignments:
+
+```bash
+npm run resolve-models
+```
+
+Write the resolved VS Code model names into the worker agent files:
+
+```bash
+npm run sync-models -- --write
+```
+
+The sync tool resolves in this order:
+
+1. `plugin.json`
+2. `~/.forge/config.json`
+3. `.forge.json`
+4. CLI runtime overrides such as `--mode cheap`, `--mode thorough`, `--all-model gpt-5-4`, or `--agent-model forge-reviewer=claude-opus-4-6`
+
+Example:
+
+```bash
+npm run sync-models -- --write --mode thorough
+```
+
+This implementation updates the worker agents in `agents/` in place. `forge-reviewer-deep` is still config-only for now and is reported as skipped because it does not yet have its own `.agent.md` file.
+
 ### Override Examples
 
 Create `~/.forge/config.json` (user-global) or `.forge.json` (per-repo). Only include the fields you want to override — everything else keeps the plugin defaults.

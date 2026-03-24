@@ -1,0 +1,9 @@
+{
+  "name": "forge-dev-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "resolve-models": "node scripts/forge-resolve-models.mjs",
+    "sync-models": "node scripts/forge-sync-models.mjs"
+  }
+}

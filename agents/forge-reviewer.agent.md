@@ -1,6 +1,7 @@
 ---
 name: forge-reviewer
 description: Adversarial code reviewer. Finds bugs, security issues, and logic errors in staged changes. Model configured via forge config (default role: review; reasoning role for deep review in Large tasks). Read-focused — does not modify code.
+model: "GPT-5.4 (copilot)"
 user-invocable: false
 tools: ['execute', 'read', 'search']
 handoffs:

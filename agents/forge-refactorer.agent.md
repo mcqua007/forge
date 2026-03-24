@@ -1,6 +1,7 @@
 ---
 name: forge-refactorer
 description: TDD Refactor phase — improves code quality while maintaining passing tests. Model configured via forge config (default role: execution). Does not change behavior.
+model: "GPT-5.4 (copilot)"
 user-invocable: false
 tools: ['edit', 'read', 'search']
 handoffs:
